@@ -1,0 +1,51 @@
+.polaroid{ position:relative; background:#f5f5f5; border-radius:4px; padding:12px 12px 52px; width:300px; box-shadow:0 10px 22px rgba(0,0,0,.2), 0 0 0 1px #d8d8d8 inset, 0 0 0 1.5px #fff; border:1px solid #eaeaea; overflow:hidden }
+.polaroid .img{ width:100%; height:280px; border-radius:6px; object-fit:cover; display:block; background:#d1d1d1; box-shadow:inset 0 3px 6px rgba(0,0,0,.18) }
+.polaroid .meta{ position:absolute; left:0; right:0; bottom:10px; padding:0 12px; display:flex; align-items:flex-end; justify-content:space-between; gap:8px; font-family:'Caveat', cursive }
+.polaroid .caption{ font-size:18px; color:#222; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.polaroid .date{ font-size:12px; color:#5f5f5f }
+
+/* Paper texture & edge grain */
+.polaroid::after{ content:""; position:absolute; inset:0; background-image:url('/textures/paper.png'); opacity:.45; mix-blend-mode:multiply; pointer-events:none; border-radius:12px }
+.polaroid::before{ content:""; position:absolute; inset:0; border-radius:12px; box-shadow:0 0 0 1px rgba(0,0,0,.06) inset, 0 1px 0 rgba(255,255,255,.7) inset }
+
+/* Camera shell layout */
+.camWrap{position:relative; width:min(820px,92vw); margin:0 auto 16px}
+.camShell{width:100%; height:auto; position:relative; z-index:2; display:block}
+.camScreen{ --screen-left:5%; --screen-top:28.5%; --screen-w:80%;
+  position:absolute; left:var(--screen-left); top:var(--screen-top);
+  width:var(--screen-w); aspect-ratio: 644 / 358; border-radius:18px; overflow:hidden; background:#d9d9d9; box-shadow:inset 0 3px 6px rgba(0,0,0,.25); z-index:1}
+.camFilmSlot{position:absolute; left:50%; transform:translateX(-50%); bottom:3.2%; width:40%; height:7px; background:#1a1a1a; border-radius:4px; box-shadow: inset 0 2px 2px rgba(255,255,255,.06)}
+
+/* controls row */
+.controlsRow{ position:relative; z-index:10; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; margin:18px auto 24px; }
+.pill{ padding:8px 12px; border-radius:999px; background:#f2f2f2; border:2px solid var(--stroke); box-shadow: 2px 2px 0 var(--stroke); font-weight:600 }
+.textInput{ padding:10px 12px; border:4px solid #000; border-radius:10px; min-width:220px; box-shadow:0 0 0 4px #3b82f677 }
+.select{ padding:10px 12px; border:4px solid #000; border-radius:10px; background:white }
+.captureBtn{ composes: bigBtn; }
+
+/* Pile container */
+.pileContainer{ position:relative; width:min(980px,92vw); height:min(70vh,680px); margin:40px auto; }
+.pileList{ display:flex; flex-direction:column; gap:16px; width:min(520px,92vw); margin:24px auto }
+
+@media (max-width: 767px){
+  .pileContainer{ height:auto; }
+}
+
+/* Brutalist input (Uiverse by 0xnihilism) */
+.brutalist-container { position: relative; width: 250px; font-family: monospace; }
+.brutalist-input { width: 100%; padding: 15px; font-size: 18px; font-weight: bold; color: #000; background-color: #fff; border: 4px solid #000; position: relative; overflow: hidden; border-radius: 0; outline: none; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); box-shadow: 5px 5px 0 #000, 10px 10px 0 #4a90e2; }
+@keyframes glitch { 0% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } 100% { transform: translate(0); } }
+.brutalist-input:focus { animation: focus-pulse 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite, glitch 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) infinite; }
+.brutalist-input:focus::after { content: ""; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: white; z-index: -1; }
+.brutalist-input:focus::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: -2; clip-path: inset(0 100% 0 0); animation: glitch-slice 4s steps(2, end) infinite; }
+@keyframes glitch-slice { 0% { clip-path: inset(0 100% 0 0); } 10% { clip-path: inset(0 5% 0 0); } 20% { clip-path: inset(0 80% 0 0); } 30% { clip-path: inset(0 10% 0 0); } 40% { clip-path: inset(0 50% 0 0); } 50% { clip-path: inset(0 30% 0 0); } 60% { clip-path: inset(0 70% 0 0); } 70% { clip-path: inset(0 15% 0 0); } 80% { clip-path: inset(0 90% 0 0); } 90% { clip-path: inset(0 5% 0 0); } 100% { clip-path: inset(0 100% 0 0); } }
+.brutalist-label { position: absolute; left: -3px; top: -35px; font-size: 14px; font-weight: bold; color: #fff; background-color: #000; padding: 5px 10px; transform: rotate(-1deg); z-index: 1; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+.brutalist-input:focus + .brutalist-label { transform: rotate(0deg) scale(1.05); background-color: #4a90e2; }
+.smooth-type { position: relative; overflow: hidden; }
+.smooth-type::before { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0) 100%); z-index: 1; opacity: 0; transition: opacity 0.3s ease; }
+.smooth-type:focus::before { opacity: 1; animation: type-gradient 2s linear infinite; }
+@keyframes type-gradient { 0% { background-position: 300px 0; } 100% { background-position: 0 0; } }
+.brutalist-input::placeholder { color: #888; transition: color 0.3s ease; }
+.brutalist-input:focus::placeholder { color: transparent; }
+@keyframes focus-pulse { 0%, 100% { border-color: #000; } 50% { border-color: #4a90e2; } }
+

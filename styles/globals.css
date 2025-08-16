@@ -1,0 +1,29 @@
+:root{
+  --ink:#1b1b1b; --paper:#f6f4f0; --shadow:rgba(0,0,0,.18);
+  --stroke:#222; --muted:#707070; --ui-shadow:#00000033;
+}
+*{ box-sizing:border-box }
+html,body{ height:100% }
+body{ margin:0; color:var(--ink); background:var(--paper); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, Noto Sans, "Apple Color Emoji", "Segoe UI Emoji" }
+button,input,select{ font:inherit }
+
+/* Accessibility */
+:focus{ outline: none }
+:focus-visible{ outline: 3px solid #3b82f6; outline-offset: 2px }
+
+/* Layout header */
+.vsHeader{ position:fixed; top:0; left:0; right:0; height:56px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; z-index:40; }
+.macDots{ display:flex; gap:6px }
+.macDots span{ width:12px; height:12px; border-radius:50%; box-shadow:0 1px 2px var(--ui-shadow) inset }
+.macDots span:nth-child(1){ background:#ff5f56 }
+.macDots span:nth-child(2){ background:#ffbd2e }
+.macDots span:nth-child(3){ background:#27c93f }
+
+/* Buttons */
+/* CTA style (Uiverse bevel) */
+.bigBtn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; color:var(--ink); cursor:pointer; font-family:inherit; border:none; outline:1px dotted rgb(37,37,37); outline-offset:-4px; background:hsl(0deg 0% 75%); box-shadow: inset -1px -1px #292929, inset 1px 1px #fff, inset -2px -2px rgb(158,158,158), inset 2px 2px #ffffff; font-size:14px; text-transform:uppercase; letter-spacing:2px; padding:5px 30px }
+.bigBtn:active{ box-shadow: inset -1px -1px #fff, inset 1px 1px #292929, inset -2px -2px #ffffff, inset 2px 2px rgb(158,158,158) }
+
+/* Page spacing beneath fixed header */
+main, .pageContent{ padding-top:64px }
+
