@@ -3,42 +3,30 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSnaps } from "../context/SnapsContext.jsx";
-import { applyFilterToImageData } from "../lib/filters.js";
 import { saveSnap } from "../lib/api/mockAPI.js";
 import FlashOverlay from "./FlashOverlay.jsx";
+import FisheyeVideo from "./fx/FisheyeVideo.jsx";
+import BrutalistInput from "./ui/BrutalistInput.jsx";
+import CTAButton from "./ui/CTAButton.jsx";
 
 export default function VintageCamera(){
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [caption, setCaption] = useState("");
-  const [filter, setFilter] = useState("none");
   const [ready, setReady] = useState(false);
   const [flashing, setFlashing] = useState(false);
   const screenRef = useRef(null);
+  const fisheyeApiRef = useRef(null);
   const router = useRouter();
   const { addSnap } = useSnaps();
 
+  // Mark ready shortly after fisheye API is provided
   useEffect(() => {
-    let stream;
-    async function init(){
-      try{
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio:false });
-        const video = videoRef.current;
-        if (video){
-          video.srcObject = stream;
-          const onLoaded = async () => {
-            try { await video.play(); } catch (err) { /* AbortError or NotAllowedError */ }
-            setReady(true);
-          };
-          video.addEventListener('loadedmetadata', onLoaded, { once:true });
-        }
-      }catch(e){
-        console.error("getUserMedia error", e);
-      }
+    if (fisheyeApiRef.current && !ready){
+      const t = setTimeout(() => setReady(true), 500);
+      return () => clearTimeout(t);
     }
-    init();
-    return () => { if (stream) stream.getTracks().forEach(t => t.stop()); };
-  }, []);
+  }, [fisheyeApiRef.current, ready]);
 
   // Spacebar to capture (ignores when typing in inputs)
   useEffect(() => {
@@ -54,44 +42,43 @@ export default function VintageCamera(){
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [caption, filter, ready]);
+  }, [caption, ready]);
 
   async function onCapture(){
-    const video = videoRef.current; const canvas = canvasRef.current; const screenEl = screenRef.current;
-    if (!video || !canvas) return;
-    const vw = video.videoWidth; const vh = video.videoHeight;
-    const targetAspect = 644 / 358;
-    const videoAspect = vw / vh;
-    // Crop source to match the camera screen aspect (cover)
-    let sx = 0, sy = 0, sw = vw, sh = vh;
-    if (videoAspect > targetAspect){
-      // video wider than target → crop width
-      sh = vh;
-      sw = Math.round(vh * targetAspect);
-      sx = Math.round((vw - sw) / 2);
-      sy = 0;
-    } else {
-      // video taller than target → crop height
-      sw = vw;
-      sh = Math.round(vw / targetAspect);
-      sx = 0;
-      sy = Math.round((vh - sh) / 2);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Prefer fisheye export if available
+    if (fisheyeApiRef.current && typeof fisheyeApiRef.current.exportAsBlob === 'function'){
+      const warpedBlob = await fisheyeApiRef.current.exportAsBlob({ mime:'image/jpeg', quality:0.95, maxWidth:1600 });
+      if (!warpedBlob) return;
+      const imgBitmap = await (window.createImageBitmap ? createImageBitmap(warpedBlob) : new Promise((res) => { const img = new Image(); img.onload = () => res(img); img.src = URL.createObjectURL(warpedBlob); }));
+      const w = imgBitmap.width || imgBitmap.naturalWidth; const h = imgBitmap.height || imgBitmap.naturalHeight;
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(imgBitmap, 0, 0, w, h);
+      const blob = await new Promise((res)=> canvas.toBlob(res, 'image/jpeg', 0.9));
+      if (!blob) return;
+      setFlashing(true);
+      const saved = await saveSnap({ blob, caption, tags:[] });
+      addSnap(saved);
+      setTimeout(() => { setFlashing(false); router.push(`/tray?new=${saved.id}`); }, 180);
+      return;
     }
-    canvas.width = sw; canvas.height = sh;
-    const ctx = canvas.getContext('2d');
+
+    // Fallback: no fisheye API, capture from native video (if present)
+    const video = videoRef.current; const screenEl = screenRef.current;
+    if (!video) return;
+    const vw = video.videoWidth; const vh = video.videoHeight;
+    const targetAspect = 644 / 358; const videoAspect = vw / vh;
+    let sx = 0, sy = 0, sw = vw, sh = vh;
+    if (videoAspect > targetAspect){ sh = vh; sw = Math.round(vh * targetAspect); sx = Math.round((vw - sw) / 2); sy = 0; }
+    else { sw = vw; sh = Math.round(vw / targetAspect); sx = 0; sy = Math.round((vh - sh) / 2); }
+    canvas.width = sw; canvas.height = sh; const ctx = canvas.getContext('2d');
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
-    const imgData = ctx.getImageData(0,0,sw,sh);
-    applyFilterToImageData(imgData, filter);
-    ctx.putImageData(imgData,0,0);
-    const blob = await new Promise((res)=> canvas.toBlob(res, 'image/jpeg', 0.9));
-    if (!blob) return;
-    setFlashing(true);
-    const saved = await saveSnap({ blob, caption, tags:[], filter });
-    addSnap(saved);
-    setTimeout(() => {
-      setFlashing(false);
-      router.push(`/tray?new=${saved.id}`);
-    }, 180);
+    const blob = await new Promise((res)=> canvas.toBlob(res, 'image/jpeg', 0.9)); if (!blob) return;
+    setFlashing(true); const saved = await saveSnap({ blob, caption, tags:[] }); addSnap(saved);
+    setTimeout(() => { setFlashing(false); router.push(`/tray?new=${saved.id}`); }, 180);
   }
 
   return (
@@ -100,28 +87,25 @@ export default function VintageCamera(){
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="camShell" src="/ui/camera-shell.png" alt="Camera shell" />
         <div className="camScreen" ref={screenRef}>
-          <video ref={videoRef} playsInline muted aria-label="Live camera feed" style={{ width:'100%', height:'100%', objectFit:'cover', aspectRatio:'644 / 358' }} />
+          <FisheyeVideo
+            className=""
+            k={[-0.28, 0.05, 0, 0]}
+            vignette={0.25}
+            chromAb={0.003}
+            principal={[0.5, 0.5]}
+            flipY={true}
+            mirrorX={true}
+            onGetApi={(api) => { fisheyeApiRef.current = api; setReady(true); }}
+          />
         </div>
         <div className="camFilmSlot" aria-hidden="true" />
       </div>
       <div className="controlsRow" role="group" aria-label="Camera controls">
-        <label className="brutalist-container">
-          <span className="sr-only">Caption</span>
-          <input className="brutalist-input smooth-type" aria-label="Caption" value={caption} onChange={e=>setCaption(e.target.value)} placeholder="Caption..." />
-          <span className="brutalist-label" aria-hidden>Caption</span>
-        </label>
-        <label>
-          <span className="sr-only">Filter</span>
-          <select className="select" aria-label="Filter" value={filter} onChange={e=>setFilter(e.target.value)}>
-            <option value="none">None</option>
-            <option value="sepia">Sepia</option>
-            <option value="bw">BW</option>
-            <option value="grain">Grain</option>
-          </select>
-        </label>
-        <button id="captureBtn" className="bigBtn" onClick={onCapture} disabled={!ready} aria-keyshortcuts="Space">
+        <BrutalistInput id="caption" label="Caption" placeholder="Caption..." value={caption} onChange={(e)=>setCaption(e.target.value)} />
+        {/* Filter control removed - single baked vintage look */}
+        <CTAButton id="captureBtn" onClick={onCapture} disabled={!ready} aria-keyshortcuts="Space" style={{ marginTop: 12 }}>
           Capture!
-        </button>
+        </CTAButton>
       </div>
       <canvas ref={canvasRef} style={{ display:'none' }} />
       <FlashOverlay show={flashing} />

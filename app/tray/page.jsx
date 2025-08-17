@@ -25,7 +25,9 @@ function TrayInner(){
       {newId && newest ? (
         <DevelopingPolaroid snap={newest} onDone={() => {}} />
       ) : null}
-      <PolaroidPile snaps={snaps} />
+      <div className="tray-stage">
+        <PolaroidPile snaps={snaps} />
+      </div>
       {/* CTA handled in the header nav dynamically */}
     </main>
   );

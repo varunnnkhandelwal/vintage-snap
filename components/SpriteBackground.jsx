@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import usePrefersReducedMotion from "../lib/usePrefersReducedMotion.js";
+import { useDayNight } from "../context/DayNightContext.jsx";
 
 export default function SpriteBackground({
   imageSrc,
@@ -13,13 +14,17 @@ export default function SpriteBackground({
   className = "",
   layers,
 }){
+  const { mode } = useDayNight();
+  const chosenSrc = mode === 'night' ? '/bg/night.png' : '/bg/day.png';
   const canvasRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
   const rafRef = useRef(0);
   const imgRef = useRef(null);
   const offsetRef = useRef(0);
   const reduce = usePrefersReducedMotion();
 
   useEffect(() => {
+    setMounted(true);
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     let dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
@@ -36,7 +41,7 @@ export default function SpriteBackground({
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    const images = (layers && layers.length ? layers : [{ src: imageSrc, speed, scale, opacity }]).map(l => {
+    const images = (layers && layers.length ? layers : [{ src: chosenSrc, speed, scale, opacity }]).map(l => {
       const im = new Image();
       im.src = l.src;
       return { ...l, im };
@@ -44,7 +49,7 @@ export default function SpriteBackground({
 
     function drawLayer(layer, t){
       const { im, speed: spd = speed, opacity: opa = opacity, scale: scl = scale } = layer;
-      if (!im.complete) return;
+      if (!im.complete || !im.naturalWidth || !im.naturalHeight) return;
       const w = canvas.clientWidth, h = canvas.clientHeight;
       const iw = im.naturalWidth * scl, ih = im.naturalHeight * scl;
       const delta = (t * spd) % (axis === 'x' ? iw : ih);
@@ -73,16 +78,26 @@ export default function SpriteBackground({
       if (!vis && rafRef.current){ cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
     }
     document.addEventListener('visibilitychange', onVis);
+    rafRef.current = 0; // ensure a new RAF can start
     onVis();
 
     return () => {
       running = false;
       document.removeEventListener('visibilitychange', onVis);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
       ro.disconnect();
     };
-  }, [imageSrc, axis, speed, scale, opacity, reduce, layers]);
+  }, [chosenSrc, axis, speed, scale, opacity, reduce, layers]);
 
-  return <canvas ref={canvasRef} className={`spriteCanvas ${className}`} style={{ zIndex }} aria-hidden />
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`spriteCanvas ${className}`}
+      style={mounted ? { zIndex, backgroundImage: `url(${chosenSrc})`, backgroundRepeat: axis === 'x' ? 'repeat-x' : 'repeat-y', backgroundSize: 'auto', imageRendering: 'pixelated' } : undefined}
+      suppressHydrationWarning
+      aria-hidden
+    />
+  )
 }
 

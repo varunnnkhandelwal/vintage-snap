@@ -10,9 +10,11 @@
   },
   "dependencies": {
     "framer-motion": "^12.23.12",
+    "html-to-image": "^1.11.13",
     "next": "15.4.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "three": "^0.179.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
