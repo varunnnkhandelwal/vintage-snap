@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useSnaps } from "../../context/SnapsContext.jsx";
 import PolaroidPile from "../../components/tray/PolaroidPile.jsx";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 function TrayInner(){
   const { snaps } = useSnaps();
   const router = useRouter();
+  const [x, setX] = useState(0);
 
   return (
     <main className="pageContent" aria-labelledby="trayTitle">
