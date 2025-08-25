@@ -7,7 +7,6 @@ const SnapsContext = createContext(null);
 export function SnapsProvider({ children }) {
   // In-memory only — lost on full reload
   const [snaps, setSnaps] = useState([]);
-  const [pending, setPending] = useState(null);
 
   // Optional: wipe any legacy persisted data once
   useEffect(() => {
@@ -21,21 +20,11 @@ export function SnapsProvider({ children }) {
   const api = useMemo(
     () => ({
       snaps,
-      addSnap: (snap) => setSnaps((s) => (s.find((x) => x.id === snap.id) ? s : [snap, ...s])),
+      addSnap: (snap) => setSnaps((s) => [snap, ...s]),
       removeSnap: (id) => setSnaps((s) => s.filter((x) => x.id !== id)),
-      moveToFront: (id) => setSnaps((s) => {
-        const idx = s.findIndex((x) => x.id === id);
-        if (idx <= 0) return s; // already first or not found
-        const copy = s.slice();
-        const [item] = copy.splice(idx, 1);
-        copy.unshift(item);
-        return copy;
-      }),
       clearSnaps: () => setSnaps([]),
-      pending,
-      setPending,
     }),
-    [snaps, pending]
+    [snaps]
   );
 
   return <SnapsContext.Provider value={api}>{children}</SnapsContext.Provider>;
