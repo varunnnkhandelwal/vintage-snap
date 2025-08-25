@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSnaps } from "../context/SnapsContext.jsx";
 import { saveSnap } from "../lib/api/mockAPI.js";
 import FlashOverlay from "./FlashOverlay.jsx";
+import { AnimatePresence } from "framer-motion";
 import FisheyeVideo from "./fx/FisheyeVideo.jsx";
 import BrutalistInput from "./ui/BrutalistInput.jsx";
 import CTAButton from "./ui/CTAButton.jsx";
@@ -17,6 +18,7 @@ export default function VintageCamera(){
   const [flashing, setFlashing] = useState(false);
   const screenRef = useRef(null);
   const fisheyeApiRef = useRef(null);
+  const capturingRef = useRef(false);
   const router = useRouter();
   const { addSnap } = useSnaps();
 
@@ -45,6 +47,8 @@ export default function VintageCamera(){
   }, [caption, ready]);
 
   async function onCapture(){
+    if (capturingRef.current) return;
+    capturingRef.current = true;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -52,17 +56,12 @@ export default function VintageCamera(){
     if (fisheyeApiRef.current && typeof fisheyeApiRef.current.exportAsBlob === 'function'){
       const warpedBlob = await fisheyeApiRef.current.exportAsBlob({ mime:'image/jpeg', quality:0.95, maxWidth:1600 });
       if (!warpedBlob) return;
-      const imgBitmap = await (window.createImageBitmap ? createImageBitmap(warpedBlob) : new Promise((res) => { const img = new Image(); img.onload = () => res(img); img.src = URL.createObjectURL(warpedBlob); }));
-      const w = imgBitmap.width || imgBitmap.naturalWidth; const h = imgBitmap.height || imgBitmap.naturalHeight;
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(imgBitmap, 0, 0, w, h);
-      const blob = await new Promise((res)=> canvas.toBlob(res, 'image/jpeg', 0.9));
-      if (!blob) return;
+      // show temporary ghost and navigate; add to context after flight on tray
+      // We'll show a temporary ghost on the tray; once there, we'll add to context
       setFlashing(true);
-      const saved = await saveSnap({ blob, caption, tags:[] });
+      const saved = await saveSnap({ blob: warpedBlob, caption, tags:[] });
       addSnap(saved);
-      setTimeout(() => { setFlashing(false); router.push(`/tray?new=${saved.id}`); }, 180);
+      setTimeout(() => { setFlashing(false); router.push('/tray'); capturingRef.current = false; }, 150);
       return;
     }
 
@@ -77,8 +76,10 @@ export default function VintageCamera(){
     canvas.width = sw; canvas.height = sh; const ctx = canvas.getContext('2d');
     ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
     const blob = await new Promise((res)=> canvas.toBlob(res, 'image/jpeg', 0.9)); if (!blob) return;
-    setFlashing(true); const saved = await saveSnap({ blob, caption, tags:[] }); addSnap(saved);
-    setTimeout(() => { setFlashing(false); router.push(`/tray?new=${saved.id}`); }, 180);
+    setFlashing(true);
+    const saved = await saveSnap({ blob, caption, tags:[] });
+    addSnap(saved);
+    setTimeout(() => { setFlashing(false); router.push('/tray'); capturingRef.current = false; }, 150);
   }
 
   return (

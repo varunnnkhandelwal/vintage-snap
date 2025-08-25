@@ -26,11 +26,14 @@ export function DraggableCardContainer({ className, children }){
 }
 
 export function DraggableCardBody({
+  id,
   className,
   children,
   containerRef,
   stackIndex = 0,
   onCardClick,
+  onBringToFront,
+  zIndex = 1,
 }){
   const { rx, ry, rot, scale, z } = useScatter(stackIndex);
   const [zLift, setZLift] = useState(0);
@@ -42,8 +45,9 @@ export function DraggableCardBody({
       dragElastic={0.25}
       dragMomentum
       dragTransition={{ power: 0.3, timeConstant: 220 }}
-      onDragStart={()=>setZLift(10)}
+      onDragStart={()=>{ setZLift(10); onBringToFront?.(id); }}
       onDragEnd={()=>setTimeout(()=>setZLift(0),120)}
+      onPointerDown={()=> onBringToFront?.(id)}
       onClick={()=>onCardClick?.(stackIndex)}
       className={cn("polaroid-card", className)}
       style={{
@@ -52,7 +56,7 @@ export function DraggableCardBody({
         left: "50%",
         top: "50%",
         translate: "-50% -50%",  // keeps anchor centered even while dragging
-        zIndex: z + zLift,
+        zIndex: (zIndex || 1) + zLift,
         willChange: "transform",
         cursor: "grab",
       }}

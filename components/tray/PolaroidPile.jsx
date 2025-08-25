@@ -1,33 +1,54 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import PolaroidCard from "../PolaroidCard.jsx";
+import { useSnaps } from "../../context/SnapsContext.jsx";
 import { DraggableCardContainer, DraggableCardBody } from "../ui/draggable-card.jsx";
 
 export default function PolaroidPile({ snaps }){
   const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
-  const ordered = useMemo(() => [...snaps].sort((a,b) => (new Date(b.created_at) - new Date(a.created_at))), [snaps]);
-  const [zBoostId, setZBoostId] = useState(null);
+  // Use the array order from context so moveToFront persists
+  const ordered = useMemo(() => snaps.slice(), [snaps]);
+  const { moveToFront } = useSnaps();
 
   if (isMobile){
     return (
       <div className="pileList">
-        {ordered.map(snap => (
-          <PolaroidFrame key={snap.id} layoutId={`snap-${snap.id}`} src={snap.image_url} caption={snap.caption} date={snap.created_at} />
+        {ordered.map((snap) => (
+          <div key={snap.id} onClick={() => moveToFront(snap.id)}>
+            <PolaroidCard snap={snap} />
+          </div>
         ))}
       </div>
     );
   }
 
+  // z-index map that persists per session within the container
+  const zMapRef = React.useRef({});
+  const zTopRef = React.useRef(1000);
+  const bringToFront = (id) => {
+    zTopRef.current += 1;
+    zMapRef.current[id] = zTopRef.current;
+  };
+
   return (
-    <div className="pileContainer">
-      <DraggableCardContainer>
-        {ordered.map((snap, index) => (
-          <DraggableCardBody key={snap.id}>
+    <div className="pileContainer" style={{ position:'relative' }}>
+      {ordered.map((snap, index) => {
+        const baseZ = ordered.length - index;
+        const zIndex = zMapRef.current[snap.id] ?? baseZ;
+        return (
+          <DraggableCardBody
+            key={snap.id}
+            id={snap.id}
+            onCardClick={() => bringToFront(snap.id)}
+            onBringToFront={bringToFront}
+            zIndex={zIndex}
+            stackIndex={index}
+          >
             <PolaroidCard snap={snap} />
           </DraggableCardBody>
-        ))}
-      </DraggableCardContainer>
+        );
+      })}
     </div>
   );
 }
